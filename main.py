@@ -1,12 +1,18 @@
-from dearpygui.core import *
-from dearpygui.simple import *
+import dearpygui.dearpygui as dpg
 
 def create_main_window():
-    set_main_window_size(1200, 800)
-    set_main_window_title("PyQuestStudio")
+    dpg.create_context()
 
-    with window("MainWindow"):
-        add_text("Welcome to PyQuestStudio!")
+    dpg.create_viewport(title="PyQuestStudio", width=1200, height=800)
+    dpg.setup_dearpygui()
+
+    with dpg.window(tag="MainWindow"):
+        dpg.add_text("Welcome to PyQuestStudio!")
         # Later we’ll add docked panels, scene canvas, etc.
 
-create_main_window()
+    dpg.show_viewport()
+    dpg.start_dearpygui()
+    dpg.destroy_context()
+
+if __name__ == "__main__":
+    create_main_window()

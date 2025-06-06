@@ -1,10 +1,8 @@
-from dearpygui.core import *
-from dearpygui.dearpygui import start_dearpygui
-from dearpygui.simple import *
 import time
 import threading
 import os
 from PIL import Image
+import dearpygui.dearpygui as dpg
 
 # Duration before main window opens
 SPLASH_DURATION = 2.5  # seconds
@@ -12,53 +10,58 @@ SPLASH_DURATION = 2.5  # seconds
 # Path to splash image
 SPLASH_IMAGE_PATH = os.path.join("assets", "ui", "splash.png")
 
+
 def show_main_window():
-    delete_item("SplashWindow")
-    import builder.main_window  # triggers creation of main UI
+    dpg.delete_item("SplashWindow")
+    import builder.main_window  # Launches the main window GUI
+
 
 def launch_main_delayed():
     time.sleep(SPLASH_DURATION)
     show_main_window()
 
 
-def set_window_pos(param, x, y):
-    pass
+def load_image_texture(path: str):
+    """Loads image as RGBA texture for use in DearPyGui."""
+    image = Image.open(path).convert("RGBA")
+    width, height = image.size
+    data = image.tobytes("raw", "RGBA", 0, -1)
+    texture_data = [v / 255 for v in data]
+
+    with dpg.texture_registry(show=False):
+        dpg.add_static_texture(width, height, texture_data, tag="splash_texture")
+
+    return width, height
 
 
 def create_splash_screen():
-    # Load image dimensions using Pillow
-    image = Image.open(SPLASH_IMAGE_PATH)
-    width, height = image.size
+    dpg.create_context()
 
-    # Load image into DearPyGui
-    add_additional_font("assets/ui/OpenSans-SemiBold.ttf", 18, tag="default_font")  # Optional
-    add_texture("splash_texture", *load_image(SPLASH_IMAGE_PATH))
+    # Load splash image and register as texture
+    width, height = load_image_texture(SPLASH_IMAGE_PATH)
 
-    # Set window size to image size
-    set_main_window_size(width, height)
-    set_main_window_title("PyQuestStudio Loading...")
+    dpg.create_viewport(title='PyQuestStudio Loading...', width=width, height=height)
+    dpg.setup_dearpygui()
 
-    # Center window (estimates for 1080p screen — adjust or make dynamic if needed)
-    screen_width = 1920
+    with dpg.window(tag="SplashWindow", no_title_bar=True, no_resize=True, no_move=True, no_close=True,
+                    no_scrollbar=True):
+        dpg.add_image("splash_texture")
+
+    # Center the viewport (optional basic center approximation)
+    screen_width = 1920  # For dynamic resolution you'd need OS-specific code
     screen_height = 1080
     x = int((screen_width - width) / 2)
     y = int((screen_height - height) / 2)
+    dpg.set_viewport_pos((x, y))
 
-    with window("SplashWindow", no_title_bar=True, no_resize=True, no_move=True, no_close=True):
-        add_image("splash_texture")
+    dpg.show_viewport()
 
-    set_window_pos("SplashWindow", x, y)
-
-    # Trigger transition after delay
+    # Launch main window in background thread
     threading.Thread(target=launch_main_delayed, daemon=True).start()
-    start_dearpygui(primary_window="SplashWindow")
 
-# Helper to load an image into a DearPyGui-compatible format
-def load_image(path):
-    image = Image.open(path).convert("RGBA")
-    width, height = image.size
-    raw_data = image.tobytes("raw", "RGBA", 0, -1)
-    return width, height, [int(b)/255.0 for b in raw_data]
+    dpg.start_dearpygui()
+    dpg.destroy_context()
+
 
 if __name__ == "__main__":
     create_splash_screen()
